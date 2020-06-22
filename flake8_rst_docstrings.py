@@ -153,8 +153,12 @@ def humanize(string):
 
 
 class Visitor(ast.NodeVisitor):
+    """
+    Class to traverse an Abstract Syntax Tree (AST), extract docstrings and check them.
+    """
 
     def __init__(self, extra_roles, extra_directives) -> None:
+        """Initialise the AST NodeVisitor."""
         self.errors: List[Tuple[int, int, str]] = []
         self._from_imports: Dict[str, str] = {}
         self.extra_roles = extra_roles
@@ -226,20 +230,17 @@ class Visitor(ast.NodeVisitor):
                 self.errors.append((lineno, col_offset, msg))
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Used for the docstring of a function, or a method of a class"""
-
+        """Check the docstring of a function, or a method of a class."""
         self._check_docstring(node)
         super().generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        """Used for the docstring of a class"""
-
+        """Check the docstring of a class."""
         self._check_docstring(node)
         super().generic_visit(node)
 
     def visit_Module(self, node: ast.Module) -> None:
-        """Used for the module-level docstring"""
-
+        """Check the module-level docstring."""
         self._check_docstring(node)
         super().generic_visit(node)
 
@@ -251,11 +252,17 @@ class Plugin:
     version: str = __version__
 
     def __init__(self, tree: ast.AST):
+        """Initialise the flake8_rst_docstrings with an Abstract Syntax Tree (AST)."""
         self._tree = tree
         self.extra_directives = None
         self.extra_roles = None
 
     def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
+        """
+        Traverse the Abstract Syntax Tree, extract docstrings and check them.
+
+        Yields a tuple of (line number, column offset, error message, type(self))
+        """
         visitor = Visitor(self.extra_roles, self.extra_directives)
         visitor.visit(self._tree)
 
