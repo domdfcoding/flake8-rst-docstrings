@@ -45,6 +45,6 @@ setup(
     py_modules=["flake8_rst_docstrings"],
     install_requires=["flake8 >= 3.0.0", "restructuredtext_lint"],
     entry_points={
-        "flake8.extension": ["RST = flake8_rst_docstrings:reStructuredTextChecker"]
+        "flake8.extension": ["RST = flake8_rst_docstrings:Plugin"]
     },
 )
