@@ -161,8 +161,16 @@ class Visitor(ast.NodeVisitor):
         """Initialise the AST NodeVisitor."""
         self.errors: List[Tuple[int, int, str]] = []
         self._from_imports: Dict[str, str] = {}
-        self.extra_roles = extra_roles
-        self.extra_directives = extra_directives
+
+        if extra_roles is None:
+            self.extra_roles = []
+        else:
+            self.extra_roles = extra_roles
+
+        if extra_directives is None:
+            self.extra_directives = []
+        else:
+            self.extra_directives = extra_directives
 
     def _check_docstring(self, node: Union[ast.ClassDef, ast.FunctionDef, ast.Module]):
         docstring = ast.get_docstring(node)
@@ -254,8 +262,8 @@ class Plugin:
     def __init__(self, tree: ast.AST):
         """Initialise the flake8_rst_docstrings with an Abstract Syntax Tree (AST)."""
         self._tree = tree
-        self.extra_directives = None
-        self.extra_roles = None
+        # self.extra_directives = None
+        # self.extra_roles = None
 
     def run(self) -> Generator[Tuple[int, int, str, Type[Any]], None, None]:
         """
