@@ -133,11 +133,12 @@ def trim(docstring):
     if indent < sys.maxsize:
         for line in lines[1:]:
             trimmed.append(line[indent:].rstrip())
+    # Stripping trailing and leading blank lines throws the line numbering off
     # Strip off trailing and leading blank lines:
-    while trimmed and not trimmed[-1]:
-        trimmed.pop()
-    while trimmed and not trimmed[0]:
-        trimmed.pop(0)
+    # while trimmed and not trimmed[-1]:
+    #     trimmed.pop()
+    # while trimmed and not trimmed[0]:
+    #     trimmed.pop(0)
     # Return a single string:
     return "\n".join(trimmed)
 
@@ -173,15 +174,32 @@ class Visitor(ast.NodeVisitor):
             self.extra_directives = extra_directives
 
     def _check_docstring(self, node: Union[ast.ClassDef, ast.FunctionDef, ast.Module]):
-        docstring = ast.get_docstring(node)
+        docstring = ast.get_docstring(node, clean=False)
 
         if docstring:
             if isinstance(node, ast.Module):
-                lineno = 0
+                # lineno = 0
                 col_offset = -1
             else:
-                lineno = node.lineno
+                # lineno = node.lineno
                 col_offset = node.col_offset
+
+            doc_end_lineno = node.body[0].value.lineno
+            split_docstring = docstring.splitlines()
+            doc_line_length = len(split_docstring)
+
+            # Special casing for docstrings where the final line doesn't have indentation.
+            # (Usually module docstring)
+            if not re.match(r"^\s+$", split_docstring[-1]):
+                doc_line_length += 1
+
+            # Calculate the start line
+            doc_start_lineno = doc_end_lineno - doc_line_length
+
+            # If docstring is only a single line the start_lineno is 1 less than the end_lineno.
+            # (-1 because docutils start counting at 1)
+            if len(split_docstring) == 1:
+                doc_start_lineno = doc_end_lineno - 1
 
             try:
                 # Note we use the PEP257 trim algorithm to remove the
@@ -224,8 +242,7 @@ class Visitor(ast.NodeVisitor):
 
                     # This will return the line number by combining the
                     # start of the docstring with the offset within it.
-                    # FIXME: Sometimes this is 1 line behind
-                    self.errors.append((lineno + rst_error.line, col_offset, msg))
+                    self.errors.append((doc_start_lineno + rst_error.line, col_offset, msg))
 
             except Exception as err:
                 # e.g. UnicodeDecodeError
@@ -235,7 +252,7 @@ class Visitor(ast.NodeVisitor):
                         "Failed to lint docstring: %s - %s" % (node.name, err),
                         )
 
-                self.errors.append((lineno, col_offset, msg))
+                self.errors.append((doc_start_lineno, col_offset, msg))
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Check the docstring of a function, or a method of a class."""
@@ -258,6 +275,8 @@ class Plugin:
 
     name: str = "rst-docstrings"
     version: str = __version__
+    extra_directives: List[str] = []
+    extra_roles: List[str] = []
 
     def __init__(self, tree: ast.AST):
         """Initialise the flake8_rst_docstrings with an Abstract Syntax Tree (AST)."""
