@@ -161,7 +161,6 @@ class Visitor(ast.NodeVisitor):
     def __init__(self, extra_roles, extra_directives) -> None:
         """Initialise the AST NodeVisitor."""
         self.errors: List[Tuple[int, int, str]] = []
-        self._from_imports: Dict[str, str] = {}
 
         if extra_roles is None:
             self.extra_roles = []
@@ -234,6 +233,9 @@ class Visitor(ast.NodeVisitor):
 
                     if not code:
                         # We ignored it, e.g. a known Sphinx role
+                        continue
+
+                    if code == 99 and rst_error.level == 3 and msg == "Document may not end with a transition.":
                         continue
 
                     assert 0 < code < 100, code
